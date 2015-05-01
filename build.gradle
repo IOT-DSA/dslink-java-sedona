@@ -1,0 +1,38 @@
+apply plugin: 'application'
+apply plugin: 'findbugs'
+apply plugin: 'java'
+
+mainClassName = 'org.dsa.iot.sedona.Main'
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+version = '0.0.1-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://oss.sonatype.org/content/repositories/snapshots/'
+    }
+}
+ 
+dependencies {
+    compile 'org.iot-dsa:dslink:0.3.0-SNAPSHOT'
+    compile fileTree('external')
+}
+
+run {
+    args System.getProperty("exec.args", "").split()
+    workingDir project.buildDir
+}
+
+tasks.withType(FindBugs) {
+    reports {
+        xml.enabled = false
+        html.enabled = true
+    }
+}
+
+applicationDistribution.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+applicationDistribution.from(new File(project.projectDir, "dslink.json"))
+applicationDistribution.from(new File(project.projectDir, "external/sedona.properties")) {
+    into 'lib'
+}
