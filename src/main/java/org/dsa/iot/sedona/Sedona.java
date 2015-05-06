@@ -82,8 +82,8 @@ public class Sedona {
         }, 5, TimeUnit.SECONDS);
     }
 
-    private synchronized void buildTree(final Node parent,
-                                        final SoxComponent component) {
+    private void buildTree(final Node parent,
+                           final SoxComponent component) {
         Objects.getDaemonThreadPool().execute(new Runnable() {
             @Override
             public void run() {
