@@ -6,10 +6,12 @@ import org.dsa.iot.dslink.node.value.Value;
 import org.dsa.iot.dslink.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vertx.java.core.Handler;
 import sedona.Slot;
 import sedona.dasp.DaspSocket;
 import sedona.sox.SoxClient;
 import sedona.sox.SoxComponent;
+import sedona.sox.SoxComponentListener;
 
 import java.net.InetAddress;
 import java.util.Map;
@@ -54,7 +56,9 @@ public class Sedona {
                 client.connect();
                 LOGGER.info("Opened connection to '{}'", parent.getName());
                 try {
-                    buildTree(parent, client.loadApp(), true);
+                    SoxComponent top = client.loadApp();
+                    buildTree(parent, top);
+                    client.subscribeToAllTreeEvents();
                 } catch (Exception e) {
                     LOGGER.error("Failed to build tree", e);
                 }
@@ -78,29 +82,84 @@ public class Sedona {
         }, 5, TimeUnit.SECONDS);
     }
 
-    private void buildTree(Node node, SoxComponent component, boolean clear) {
-        if (clear) {
-            parent.clearChildren();
-        }
+    private synchronized void buildTree(final Node parent,
+                                        final SoxComponent component) {
+        Objects.getDaemonThreadPool().execute(new Runnable() {
+            @Override
+            public void run() {
+                String name = component.name();
+                NodeBuilder builder = getOrCreateBuilder(parent, name);
 
-        for (Slot slot : component.type.slots) {
-            NodeBuilder builder = node.createChild(slot.name);
-            sedona.Value val = component.get(slot);
-            Value value = new Value((String) null, true);
-            if (val != null) {
-                value.set(val.toString());
+                if (component.listener == null) {
+                    component.listener = new SoxComponentListener() {
+                        @Override
+                        public void changed(SoxComponent c, int mask) {
+                            buildTree(parent, c);
+                        }
+                    };
+                }
+
+                final Node node = builder.build();
+                node.setSerializable(false);
+
+                for (Slot slot : component.type.slots) {
+                    if (slot.name.equals(name)) {
+                        continue;
+                    }
+                    sedona.Value val = component.get(slot);
+                    Value value = new Value((String) null, true);
+                    if (val != null) {
+                        value.set(val.toString());
+                    }
+
+                    Node n = node.createChild(slot.name).build();
+                    n.setValue(value);
+                    setSubHandlers(n, component);
+                }
+
+                SoxComponent[] children = component.children();
+                if (children != null) {
+                    for (SoxComponent comp : children) {
+                        buildTree(node, comp);
+                    }
+                }
             }
-            builder.setValue(value);
-            Node child = builder.build();
-            child.setSerializable(false);
-        }
+        });
+    }
 
-        for (SoxComponent comp : component.children()) {
-            NodeBuilder builder = node.createChild(comp.name());
-            Node child = builder.build();
-            child.setSerializable(false);
-            buildTree(child, comp, false);
-        }
+    private void setSubHandlers(final Node child,
+                                final SoxComponent component) {
+        child.getListener().setOnSubscribeHandler(new Handler<Node>() {
+            @Override
+            public void handle(Node event) {
+                try {
+                    int mask = SoxComponent.RUNTIME;
+                    if ((component.subscription() & mask) != mask) {
+                        LOGGER.info("Subscribed to {}", child.getPath());
+                        mask = SoxComponent.RUNTIME | SoxComponent.CONFIG;
+                        client.subscribe(component, mask);
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("", e);
+                }
+            }
+        });
+
+        child.getListener().setOnUnsubscribeHandler(new Handler<Node>() {
+            @Override
+            public void handle(Node event) {
+                try {
+                    int mask = SoxComponent.RUNTIME;
+                    if ((component.subscription() & mask) == mask) {
+                        LOGGER.info("Unsubscribed to {}", child.getPath());
+                        mask = SoxComponent.RUNTIME | SoxComponent.CONFIG;
+                        client.unsubscribe(component, mask);
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("Failed to unsubscribe", e);
+                }
+            }
+        });
     }
 
     public static void init(Node superRoot) {
@@ -121,5 +180,18 @@ public class Sedona {
                 }
             }
         }
+    }
+
+    private static NodeBuilder getOrCreateBuilder(Node parent, String name) {
+        NodeBuilder builder;
+        {
+            Node node = parent.getChild(name);
+            if (node == null) {
+                builder = parent.createChild(name);
+            } else {
+                builder = node.createFakeBuilder();
+            }
+        }
+        return builder;
     }
 }
