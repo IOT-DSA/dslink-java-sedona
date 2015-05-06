@@ -3,6 +3,8 @@ package org.dsa.iot.sedona;
 import org.dsa.iot.dslink.DSLink;
 import org.dsa.iot.dslink.DSLinkFactory;
 import org.dsa.iot.dslink.DSLinkHandler;
+import org.dsa.iot.dslink.node.Node;
+import org.dsa.iot.dslink.node.SubscriptionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +20,9 @@ public class Main extends DSLinkHandler {
     @Override
     public void onResponderInitialized(DSLink link) {
         LOGGER.info("Connected");
-        Sedona.init(link.getNodeManager().getSuperRoot());
+        Node superRoot = link.getNodeManager().getSuperRoot();
+        SubscriptionManager manager = link.getSubscriptionManager();
+        Sedona.init(superRoot, manager);
     }
 
     public static void main(String[] args) {

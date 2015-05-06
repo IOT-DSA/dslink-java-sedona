@@ -3,6 +3,7 @@ package org.dsa.iot.sedona;
 import org.dsa.iot.dslink.node.Node;
 import org.dsa.iot.dslink.node.NodeBuilder;
 import org.dsa.iot.dslink.node.Permission;
+import org.dsa.iot.dslink.node.SubscriptionManager;
 import org.dsa.iot.dslink.node.actions.Action;
 import org.dsa.iot.dslink.node.actions.ActionResult;
 import org.dsa.iot.dslink.node.actions.Parameter;
@@ -11,6 +12,9 @@ import org.dsa.iot.dslink.node.value.ValueType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vertx.java.core.Handler;
+import sedona.Slot;
+import sedona.Type;
+import sedona.sox.SoxComponent;
 
 /**
  * @author Samuel Grenier
@@ -19,7 +23,8 @@ public class Actions {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Actions.class);
 
-    public static Action getAddServerAction(final Node node) {
+    public static Action getAddServerAction(final Node node,
+                                            final SubscriptionManager man) {
         final ValueType vt = ValueType.STRING;
         Action a = new Action(Permission.READ, new Handler<ActionResult>() {
             @Override
@@ -43,7 +48,7 @@ public class Actions {
 
                     Node child = builder.build();
                     try {
-                        Sedona sedona = new Sedona(child);
+                        Sedona sedona = new Sedona(child, man);
                         sedona.connect(true);
                     } catch (Exception e) {
                         LOGGER.info("Failed to add server", e);
@@ -57,6 +62,61 @@ public class Actions {
         a.addParameter(new Parameter("port", ValueType.NUMBER));
         a.addParameter(new Parameter("username", vt));
         a.addParameter(new Parameter("password", vt));
+        return a;
+    }
+
+    public static Action getInvokableSedonaNode(final Sedona sed,
+                                                final Slot slot,
+                                                final SoxComponent comp) {
+        final int typeId = slot.type.id;
+        final ValueType type;
+        if (typeId == Type.byteId
+                || typeId == Type.shortId
+                || typeId == Type.intId
+                || typeId == Type.longId
+                || typeId == Type.floatId
+                || typeId == Type.doubleId) {
+            type = ValueType.NUMBER;
+        } else if (typeId == Type.strId) {
+            type = ValueType.STRING;
+        } else if (typeId == Type.boolId) {
+            type = ValueType.BOOL;
+        } else {
+            type = null;
+        }
+        Action a = new Action(Permission.READ, new Handler<ActionResult>() {
+            @Override
+            public void handle(ActionResult event) {
+                sedona.Value val = null;
+                if (type != null) {
+                    Value value = event.getParameter("value");
+                    if (value != null) {
+                        if (typeId == Type.byteId) {
+                            val = sedona.Byte.make(value.getNumber().byteValue());
+                        } else if (typeId == Type.shortId) {
+                            val = sedona.Short.make(value.getNumber().shortValue());
+                        } else if (typeId == Type.intId) {
+                            val = sedona.Int.make(value.getNumber().intValue());
+                        } else if (typeId == Type.longId) {
+                            val = sedona.Long.make(value.getNumber().longValue());
+                        } else if (typeId == Type.floatId) {
+                            val = sedona.Float.make(value.getNumber().floatValue());
+                        } else if (typeId == Type.doubleId) {
+                            val = sedona.Double.make(value.getNumber().doubleValue());
+                        } else if (typeId == Type.strId) {
+                            val = sedona.Str.make(value.getString());
+                        } else {
+                            val = sedona.Bool.make(value.getBool());
+                        }
+                    }
+                }
+
+                sed.invoke(comp, slot, val);
+            }
+        });
+        if (type != null) {
+            a.addParameter(new Parameter("value", type));
+        }
         return a;
     }
 }
