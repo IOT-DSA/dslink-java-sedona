@@ -17,7 +17,7 @@ in `build/distributions`.
 
 ### Running a distribution
 
-Run `./bin/dslink-java-haystack -b http://localhost:8080/conn` from the command
+Run `./bin/dslink-java-sedona -b http://localhost:8080/conn` from the command
 line. The link will then be running.
 
 ## Test running
