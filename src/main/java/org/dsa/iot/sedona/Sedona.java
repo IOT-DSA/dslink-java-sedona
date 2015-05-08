@@ -134,7 +134,7 @@ public class Sedona {
 
                         n.setValue(value);
                         setSubHandlers(n, comp);
-                        if (slot.isConfig()) {
+                        if (!slot.facets.getb("readonly", false)) {
                             final int typeId = slot.type.id;
                             n.setWritable(Writable.WRITE);
                             n.getListener().setValueHandler(new Handler<ValuePair>() {
