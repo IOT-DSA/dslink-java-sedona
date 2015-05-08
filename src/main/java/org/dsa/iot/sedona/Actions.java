@@ -91,23 +91,7 @@ public class Actions {
                 if (type != null) {
                     Value value = event.getParameter("value");
                     if (value != null) {
-                        if (typeId == Type.byteId) {
-                            val = sedona.Byte.make(value.getNumber().byteValue());
-                        } else if (typeId == Type.shortId) {
-                            val = sedona.Short.make(value.getNumber().shortValue());
-                        } else if (typeId == Type.intId) {
-                            val = sedona.Int.make(value.getNumber().intValue());
-                        } else if (typeId == Type.longId) {
-                            val = sedona.Long.make(value.getNumber().longValue());
-                        } else if (typeId == Type.floatId) {
-                            val = sedona.Float.make(value.getNumber().floatValue());
-                        } else if (typeId == Type.doubleId) {
-                            val = sedona.Double.make(value.getNumber().doubleValue());
-                        } else if (typeId == Type.strId) {
-                            val = sedona.Str.make(value.getString());
-                        } else {
-                            val = sedona.Bool.make(value.getBool());
-                        }
+                        val = Utils.fromSdkValue(value, typeId);
                     }
                 }
 

@@ -3,8 +3,10 @@ package org.dsa.iot.sedona;
 import org.dsa.iot.dslink.node.Node;
 import org.dsa.iot.dslink.node.NodeBuilder;
 import org.dsa.iot.dslink.node.SubscriptionManager;
+import org.dsa.iot.dslink.node.Writable;
 import org.dsa.iot.dslink.node.actions.Action;
 import org.dsa.iot.dslink.node.value.Value;
+import org.dsa.iot.dslink.node.value.ValuePair;
 import org.dsa.iot.dslink.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +72,7 @@ public class Sedona {
                 if (checked) {
                     throw new RuntimeException(e);
                 }
+                e.printStackTrace();
                 scheduleReconnect();
             }
         }
@@ -114,21 +117,40 @@ public class Sedona {
                 final Node node = builder.build();
                 node.setSerializable(false);
 
-                for (Slot slot : comp.type.slots) {
-                    Node n = node.createChild(slot.name).build();
+                for (final Slot slot : comp.type.slots) {
+                    final Node n = node.createChild(slot.name).build();
                     if (slot.isAction()) {
                         Sedona s = Sedona.this;
                         Action a = Actions.getInvokableSedonaNode(s, slot, comp);
                         n.setAction(a);
                     } else {
                         sedona.Value val = comp.get(slot);
-                        Value value = new Value((String) null, true);
+                        Value value;
                         if (val != null) {
-                            value.set(val.toString());
+                            value = Utils.fromSedonaValue(val);
+                        } else {
+                            value = Utils.fromSedonaSlot(slot);
                         }
 
                         n.setValue(value);
                         setSubHandlers(n, comp);
+                        if (slot.isConfig()) {
+                            final int typeId = slot.type.id;
+                            n.setWritable(Writable.WRITE);
+                            n.getListener().setValueHandler(new Handler<ValuePair>() {
+                                @Override
+                                public void handle(ValuePair event) {
+                                    try {
+                                        Value v = event.getCurrent();
+                                        sedona.Value val = Utils.fromSdkValue(v, typeId);
+                                        client.write(comp, slot, val);
+                                    } catch (Exception e) {
+                                        LOGGER.error("Error setting value on {}", n.getPath(), e);
+                                        event.setReject(true);
+                                    }
+                                }
+                            });
+                        }
                     }
                 }
 
