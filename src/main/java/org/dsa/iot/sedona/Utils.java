@@ -39,6 +39,14 @@ public class Utils {
         return val;
     }
 
+    public static Value fromSedonaValue(sedona.Value val, Slot slot) {
+        if (val != null) {
+            return Utils.fromSedonaValue(val);
+        } else {
+            return Utils.fromSedonaSlot(slot);
+        }
+    }
+
     public static Value fromSedonaValue(sedona.Value val) {
         final int typeId = val.typeId();
         final Value value;

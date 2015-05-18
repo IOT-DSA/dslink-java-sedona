@@ -7,10 +7,12 @@ import org.dsa.iot.dslink.node.Writable;
 import org.dsa.iot.dslink.node.actions.Action;
 import org.dsa.iot.dslink.node.value.Value;
 import org.dsa.iot.dslink.node.value.ValuePair;
+import org.dsa.iot.dslink.node.value.ValueType;
 import org.dsa.iot.dslink.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vertx.java.core.Handler;
+import sedona.Facets;
 import sedona.Slot;
 import sedona.dasp.DaspSocket;
 import sedona.sox.SoxClient;
@@ -18,6 +20,7 @@ import sedona.sox.SoxComponent;
 import sedona.sox.SoxComponentListener;
 
 import java.net.InetAddress;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -123,34 +126,62 @@ public class Sedona {
                         Sedona s = Sedona.this;
                         Action a = Actions.getInvokableSedonaNode(s, slot, comp);
                         n.setAction(a);
-                    } else {
-                        sedona.Value val = comp.get(slot);
-                        Value value;
-                        if (val != null) {
-                            value = Utils.fromSedonaValue(val);
-                        } else {
-                            value = Utils.fromSedonaSlot(slot);
-                        }
+                        continue;
+                    }
 
-                        n.setValue(value);
-                        setSubHandlers(n, comp);
-                        if (!slot.facets.getb("readonly", false)) {
-                            final int typeId = slot.type.id;
-                            n.setWritable(Writable.WRITE);
-                            n.getListener().setValueHandler(new Handler<ValuePair>() {
-                                @Override
-                                public void handle(ValuePair event) {
-                                    try {
-                                        Value v = event.getCurrent();
-                                        sedona.Value val = Utils.fromSdkValue(v, typeId);
-                                        client.write(comp, slot, val);
-                                    } catch (Exception e) {
-                                        LOGGER.error("Error setting value on {}", n.getPath(), e);
-                                        event.setReject(true);
-                                    }
+                    sedona.Value val = comp.get(slot);
+                    Map<String, Integer> map = null;
+                    String[] split = null;
+                    {
+                        Facets facets = slot.facets;
+                        if (facets != null) {
+                            String range = facets.gets("range");
+                            if (range != null) {
+                                map = new LinkedHashMap<>();
+                                split = range.split(", ");
+                                for (int i = 0; i < split.length; i++) {
+                                    map.put(split[i], i);
                                 }
-                            });
+                            }
                         }
+                    }
+
+                    Value value = Utils.fromSedonaValue(val, slot);
+                    if (map != null) {
+                        n.setValueType(ValueType.makeEnum(map.keySet()));
+                        int id = value.getNumber().intValue();
+                        n.setValue(new Value(split[id]));
+                    } else {
+                        n.setValueType(value.getType());
+                        n.setValue(value);
+                    }
+
+                    setSubHandlers(n, comp);
+                    if (!slot.facets.getb("readonly", false)) {
+                        final Map<String, Integer> enums = map;
+                        final int typeId = slot.type.id;
+                        n.setWritable(Writable.WRITE);
+                        n.getListener().setValueHandler(new Handler<ValuePair>() {
+                            @Override
+                            public void handle(ValuePair event) {
+                                try {
+                                    Value v = event.getCurrent();
+                                    sedona.Value val = null;
+                                    if (enums == null) {
+                                        val = Utils.fromSdkValue(v, typeId);
+                                    } else {
+                                        Integer i = enums.get(v.getString());
+                                        if (i != null) {
+                                            val = sedona.Byte.make(i);
+                                        }
+                                    }
+                                    client.write(comp, slot, val);
+                                } catch (Exception e) {
+                                    LOGGER.error("Error setting value on {}", n.getPath(), e);
+                                    event.setReject(true);
+                                }
+                            }
+                        });
                     }
                 }
 
