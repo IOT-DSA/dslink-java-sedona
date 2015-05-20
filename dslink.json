@@ -7,7 +7,7 @@
     "name": "Samuel Grenier",
     "email": "samrg472@gmail.com"
   },
-  "engines": "bin/dslink-java-sedona",
+  "main": "bin/dslink-java-sedona",
   "repository": {
     "type": "git",
     "url": "https://github.com/IOT-DSA/dslink-java-sedona"
