@@ -18,6 +18,21 @@
   "configs": {
     "broker": {
       "type": "url"
+    },
+    "nodes": {
+      "type": "path",
+      "value": "nodes.json",
+      "required": true
+    },
+    "key": {
+      "type": "path",
+      "value": ".key",
+      "required": true
+    },
+    "log": {
+      "type": "enum",
+      "value": "info",
+      "required": true
     }
   }
 }
