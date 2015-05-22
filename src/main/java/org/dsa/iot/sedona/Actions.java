@@ -12,9 +12,14 @@ import org.dsa.iot.dslink.node.value.ValueType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vertx.java.core.Handler;
+import org.vertx.java.core.json.JsonArray;
+import org.vertx.java.core.json.JsonObject;
+import sedona.Kit;
 import sedona.Slot;
 import sedona.Type;
+import sedona.sox.KitVersion;
 import sedona.sox.SoxComponent;
+import sedona.sox.VersionInfo;
 
 /**
  * @author Samuel Grenier
@@ -101,6 +106,41 @@ public class Actions {
         if (type != null) {
             a.addParameter(new Parameter("value", type));
         }
+        return a;
+    }
+
+    public static Action getVersion(final Sedona sed) {
+        Action a = new Action(Permission.READ, new Handler<ActionResult>() {
+            @Override
+            public void handle(ActionResult event) {
+                try {
+                    VersionInfo info = sed.getClient().readVersion();
+
+                    JsonArray update = new JsonArray();
+                    update.addString(info.platformId);
+                    update.addNumber(info.scodeFlags);
+                    {
+                        JsonArray kits = new JsonArray();
+                        for (KitVersion kit : info.kits) {
+                            JsonObject obj = new JsonObject();
+                            obj.putString("name", kit.name);
+                            obj.putNumber("checksum", kit.checksum);
+                            obj.putString("version", kit.version.toString());
+                            kits.addObject(obj);
+                        }
+                        update.addArray(kits);
+                    }
+                    JsonArray updates = new JsonArray();
+                    updates.addArray(update);
+                    event.setUpdates(updates);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        a.addResult(new Parameter("platformID", ValueType.STRING));
+        a.addResult(new Parameter("scodeFlags", ValueType.NUMBER));
+        a.addResult(new Parameter("kits", ValueType.ARRAY));
         return a;
     }
 }

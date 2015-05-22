@@ -40,6 +40,9 @@ public class Sedona {
     public Sedona(Node parent, SubscriptionManager manager) {
         this.manager = manager;
         this.parent = parent;
+        NodeBuilder b = parent.createChild("version");
+        b.setAction(Actions.getVersion(this));
+        b.build();
     }
 
     public synchronized void connect(boolean checked) {
@@ -79,6 +82,10 @@ public class Sedona {
                 scheduleReconnect();
             }
         }
+    }
+
+    public synchronized SoxClient getClient() {
+        return client;
     }
 
     public void invoke(SoxComponent component, Slot slot, sedona.Value value) {
@@ -152,6 +159,10 @@ public class Sedona {
                         int id = value.getNumber().intValue();
                         n.setValue(new Value(split[id]));
                     } else {
+                        if ("meta".equals(slot.name)) {
+                            Meta meta = new Meta(value.getNumber().intValue());
+                            handleMeta(n, meta);
+                        }
                         n.setValueType(value.getType());
                         n.setValue(value);
                     }
@@ -193,6 +204,15 @@ public class Sedona {
                 }
             }
         });
+    }
+
+    private void handleMeta(Node node, Meta meta) {
+        Meta.buildMetaCoord(node, "x", meta.getX());
+        Meta.buildMetaCoord(node, "y", meta.getY());
+        Meta.buildSecGroup(node, "groupOne", meta.isGroupOne());
+        Meta.buildSecGroup(node, "groupTwo", meta.isGroupTwo());
+        Meta.buildSecGroup(node, "groupThree", meta.isGroupThree());
+        Meta.buildSecGroup(node, "groupFour", meta.isGroupFour());
     }
 
     private void setSubHandlers(final Node child,
