@@ -1,5 +1,5 @@
 {
-  "name": "sedona",
+  "name": "dslink-java-sedona",
   "version": "0.0.1",
   "description": "An implementation dslink of a sedona protocol consumer",
   "license": "Apache",
