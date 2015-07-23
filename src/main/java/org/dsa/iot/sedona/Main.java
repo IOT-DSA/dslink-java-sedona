@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.Map;
 
 /**
  * @author Samuel Grenier
@@ -16,10 +17,30 @@ import java.io.File;
 public class Main extends DSLinkHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+    private DSLink link;
 
     @Override
     public boolean isResponder() {
         return true;
+    }
+
+    @Override
+    public void stop() {
+        super.stop();
+        if (link != null) {
+            Node node = link.getNodeManager().getSuperRoot();
+            Map<String, Node> children = node.getChildren();
+            if (children != null) {
+                for (Node child : children.values()) {
+                    if (child.getAction() == null) {
+                        Sedona sedona = child.getMetaData();
+                        if (sedona != null) {
+                            sedona.destroy();
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -36,6 +57,7 @@ public class Main extends DSLinkHandler {
 
     @Override
     public void onResponderInitialized(DSLink link) {
+        this.link = link;
         LOGGER.info("Connected");
         Node superRoot = link.getNodeManager().getSuperRoot();
         SubscriptionManager manager = link.getSubscriptionManager();

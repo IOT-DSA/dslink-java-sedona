@@ -34,15 +34,31 @@ public class Sedona {
     private final SubscriptionManager manager;
     private final Node parent;
 
+    private boolean running = true;
     private ScheduledFuture<?> future;
     private SoxClient client;
 
     public Sedona(Node parent, SubscriptionManager manager) {
         this.manager = manager;
         this.parent = parent;
+        parent.setMetaData(this);
         NodeBuilder b = parent.createChild("version");
         b.setAction(Actions.getVersion(this));
         b.build();
+    }
+
+    public synchronized void destroy() {
+        running = false;
+        if (future != null) {
+            future.cancel(false);
+
+        }
+        if (client != null) {
+            try {
+                client.close();
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     public synchronized void connect(boolean checked) {
@@ -75,11 +91,13 @@ public class Sedona {
                     LOGGER.error("Failed to build tree", e);
                 }
             } catch (Exception e) {
-                if (checked) {
-                    throw new RuntimeException(e);
+                if (running) {
+                    if (checked) {
+                        throw new RuntimeException(e);
+                    }
+                    e.printStackTrace();
+                    scheduleReconnect();
                 }
-                e.printStackTrace();
-                scheduleReconnect();
             }
         }
     }
