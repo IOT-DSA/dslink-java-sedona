@@ -7,6 +7,8 @@ import org.dsa.iot.dslink.node.SubscriptionManager;
 import org.dsa.iot.dslink.node.actions.Action;
 import org.dsa.iot.dslink.node.actions.ActionResult;
 import org.dsa.iot.dslink.node.actions.Parameter;
+import org.dsa.iot.dslink.node.actions.table.Row;
+import org.dsa.iot.dslink.node.actions.table.Table;
 import org.dsa.iot.dslink.node.value.Value;
 import org.dsa.iot.dslink.node.value.ValueType;
 import org.slf4j.Logger;
@@ -14,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
-import sedona.Kit;
 import sedona.Slot;
 import sedona.Type;
 import sedona.sox.KitVersion;
@@ -61,7 +62,7 @@ public class Actions {
                     }
                 }
             }
-        }, Action.InvokeMode.ASYNC);
+        });
         a.addParameter(new Parameter("name", vt));
         a.addParameter(new Parameter("url", vt));
         a.addParameter(new Parameter("port", ValueType.NUMBER));
@@ -116,9 +117,9 @@ public class Actions {
                 try {
                     VersionInfo info = sed.getClient().readVersion();
 
-                    JsonArray update = new JsonArray();
-                    update.addString(info.platformId);
-                    update.addNumber(info.scodeFlags);
+                    Table table = event.getTable();
+                    table.addRow(Row.make(new Value(info.platformId)));
+                    table.addRow(Row.make(new Value(info.scodeFlags)));
                     {
                         JsonArray kits = new JsonArray();
                         for (KitVersion kit : info.kits) {
@@ -128,11 +129,8 @@ public class Actions {
                             obj.putString("version", kit.version.toString());
                             kits.addObject(obj);
                         }
-                        update.addArray(kits);
+                        table.addRow(Row.make(new Value(kits)));
                     }
-                    JsonArray updates = new JsonArray();
-                    updates.addArray(update);
-                    event.setUpdates(updates);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

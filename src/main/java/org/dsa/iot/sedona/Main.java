@@ -18,14 +18,12 @@ public class Main extends DSLinkHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
     @Override
-    public void onResponderInitialized(DSLink link) {
-        LOGGER.info("Connected");
-        Node superRoot = link.getNodeManager().getSuperRoot();
-        SubscriptionManager manager = link.getSubscriptionManager();
-        Sedona.init(superRoot, manager);
+    public boolean isResponder() {
+        return true;
     }
 
-    public static void main(String[] args) {
+    @Override
+    public void preInit() {
         File file = new File("").getAbsoluteFile();
         if (file.getName().equals("bin")) {
             file = file.getParentFile();
@@ -34,7 +32,18 @@ public class Main extends DSLinkHandler {
         String home = System.getProperty("sedona.home", path);
         System.setProperty("sedona.home", home);
         LOGGER.info("Sedona home: {}", home);
-        DSLinkFactory.startResponder("sedona", args, new Main());
+    }
+
+    @Override
+    public void onResponderInitialized(DSLink link) {
+        LOGGER.info("Connected");
+        Node superRoot = link.getNodeManager().getSuperRoot();
+        SubscriptionManager manager = link.getSubscriptionManager();
+        Sedona.init(superRoot, manager);
+    }
+
+    public static void main(String[] args) {
+        DSLinkFactory.start(args, new Main());
     }
 
 }
