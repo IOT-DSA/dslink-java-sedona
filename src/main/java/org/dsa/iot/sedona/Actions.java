@@ -11,11 +11,11 @@ import org.dsa.iot.dslink.node.actions.table.Row;
 import org.dsa.iot.dslink.node.actions.table.Table;
 import org.dsa.iot.dslink.node.value.Value;
 import org.dsa.iot.dslink.node.value.ValueType;
+import org.dsa.iot.dslink.util.json.JsonArray;
+import org.dsa.iot.dslink.util.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vertx.java.core.Handler;
-import org.vertx.java.core.json.JsonArray;
-import org.vertx.java.core.json.JsonObject;
+import org.dsa.iot.dslink.util.handler.Handler;
 import sedona.Slot;
 import sedona.Type;
 import sedona.sox.KitVersion;
@@ -124,10 +124,10 @@ public class Actions {
                         JsonArray kits = new JsonArray();
                         for (KitVersion kit : info.kits) {
                             JsonObject obj = new JsonObject();
-                            obj.putString("name", kit.name);
-                            obj.putNumber("checksum", kit.checksum);
-                            obj.putString("version", kit.version.toString());
-                            kits.addObject(obj);
+                            obj.put("name", kit.name);
+                            obj.put("checksum", kit.checksum);
+                            obj.put("version", kit.version.toString());
+                            kits.add(obj);
                         }
                         table.addRow(Row.make(new Value(kits)));
                     }
