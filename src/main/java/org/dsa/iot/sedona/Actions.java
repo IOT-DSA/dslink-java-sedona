@@ -6,6 +6,7 @@ import org.dsa.iot.dslink.node.Permission;
 import org.dsa.iot.dslink.node.SubscriptionManager;
 import org.dsa.iot.dslink.node.actions.Action;
 import org.dsa.iot.dslink.node.actions.ActionResult;
+import org.dsa.iot.dslink.node.actions.EditorType;
 import org.dsa.iot.dslink.node.actions.Parameter;
 import org.dsa.iot.dslink.node.actions.table.Row;
 import org.dsa.iot.dslink.node.actions.table.Table;
@@ -67,7 +68,7 @@ public class Actions {
         a.addParameter(new Parameter("url", vt));
         a.addParameter(new Parameter("port", ValueType.NUMBER));
         a.addParameter(new Parameter("username", vt));
-        a.addParameter(new Parameter("password", vt));
+        a.addParameter(new Parameter("password", vt).setEditorType(EditorType.PASSWORD));
         return a;
     }
 
