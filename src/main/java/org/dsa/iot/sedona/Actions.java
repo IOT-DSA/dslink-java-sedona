@@ -66,9 +66,17 @@ public class Actions {
         });
         a.addParameter(new Parameter("name", vt));
         a.addParameter(new Parameter("url", vt));
-        a.addParameter(new Parameter("port", ValueType.NUMBER));
+        {
+            Parameter p = new Parameter("port", ValueType.NUMBER);
+            p.setDefaultValue(new Value(1876));
+            a.addParameter(p);
+        }
         a.addParameter(new Parameter("username", vt));
-        a.addParameter(new Parameter("password", vt).setEditorType(EditorType.PASSWORD));
+        {
+            Parameter p = new Parameter("password", vt);
+            p.setEditorType(EditorType.PASSWORD);
+            a.addParameter(p);
+        }
         return a;
     }
 
